@@ -56,7 +56,9 @@ curl "https://api.zinc.com/search?q=cast+iron+skillet" \
 
 `GET /search` returns `{ status, query, results: [...] }` across retailers; each result has a directly **orderable `url`** plus `retailer`, `title`, `price` (cents), `stars`. Filter results to `retailer == "pokemoncenter"` for Pokémon Center-only, then pass the `url` into an order.
 
-Paying via MPP (no account)? Use the metered `POST /agent/search` instead — $0.01 per call, returns a `Payment-Receipt` header; the MPP client handles the 402 → pay → retry automatically. `GET /retailers` is free.
+**Search is metered.** `GET /search` costs $0.01 per call, drawn from the account's [wallet](https://zinc.com/docs/v2/wallet) — billed on the search itself, before and regardless of any order. An empty wallet gets `402 {"detail": "Insufficient wallet balance for data API call"}`; don't retry into it, every attempt bills. Sandbox keys (`zn_test_`) are free. Search once with the best query rather than fanning out over variations.
+
+Paying via MPP (no account)? Use the metered `POST /agent/search` instead — same $0.01 per call, returns a `Payment-Receipt` header; the MPP client handles the 402 → pay → retry automatically. `GET /retailers` is free on both rails.
 
 ## Place an order — `POST /orders` (or `POST /agent/orders` for MPP)
 

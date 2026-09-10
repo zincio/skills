@@ -178,7 +178,9 @@ curl "https://api.zinc.com/search?q=cast+iron+skillet" \\
 
 {{FIND_FILTER}}
 
-Paying via MPP (no account)? Use the metered `POST /agent/search` instead — $0.01 per call, returns a `Payment-Receipt` header; the MPP client handles the 402 → pay → retry automatically. `GET /retailers` is free.{{PRODUCT_SEARCH}}
+**Search is metered.** `GET /search` costs $0.01 per call, drawn from the account's [wallet](https://zinc.com/docs/v2/wallet) — billed on the search itself, before and regardless of any order. An empty wallet gets `402 {"detail": "Insufficient wallet balance for data API call"}`; don't retry into it, every attempt bills. Sandbox keys (`zn_test_`) are free. Search once with the best query rather than fanning out over variations.
+
+Paying via MPP (no account)? Use the metered `POST /agent/search` instead — same $0.01 per call, returns a `Payment-Receipt` header; the MPP client handles the 402 → pay → retry automatically. `GET /retailers` is free on both rails.{{PRODUCT_SEARCH}}
 
 ## Place an order — `POST /orders` (or `POST /agent/orders` for MPP)
 
@@ -356,11 +358,11 @@ If your platform supports scheduled tasks or cron jobs, schedule a check ~7 minu
 
 RETAILER_PRODUCT_SEARCH = """
 
-{{DISPLAY}} is one of the few retailers with richer product data (currently Amazon & Walmart only). For best-price comparison, use `GET /products/search?query=<term>&retailer={{SLUG}}` (returns `product_id`, `price`, `ship_price`, `stars`, …) and `GET /products/{product_id}/offers?retailer={{SLUG}}` to compare offers by **price and condition** before ordering. On the MPP rail these are `POST /agent/products/search`, `POST /agent/products/offers`, and `POST /agent/products/details` (query param `product_id=…&retailer={{SLUG}}`), $0.01 per call."""
+{{DISPLAY}} is one of the few retailers with richer product data (currently Amazon & Walmart only). For best-price comparison, use `GET /products/search?query=<term>&retailer={{SLUG}}` (returns `product_id`, `price`, `ship_price`, `stars`, …) and `GET /products/{product_id}/offers?retailer={{SLUG}}` to compare offers by **price and condition** before ordering. These are metered too — $0.01 per call from the wallet, same as `/search`. On the MPP rail they are `POST /agent/products/search`, `POST /agent/products/offers`, and `POST /agent/products/details` (query param `product_id=…&retailer={{SLUG}}`), $0.01 per call."""
 
 UNIVERSAL_PRODUCT_SEARCH = """
 
-**Richer product data (Amazon & Walmart only).** For best-price comparison on those two, use `GET /products/search?query=<term>&retailer=amazon|walmart` (returns `product_id`, `price`, `ship_price`, `stars`, …) and `GET /products/{product_id}/offers?retailer=amazon|walmart` to compare offers by **price and condition** before ordering. On the MPP rail these are `POST /agent/products/search`, `POST /agent/products/offers`, and `POST /agent/products/details`, $0.01 per call."""
+**Richer product data (Amazon & Walmart only).** For best-price comparison on those two, use `GET /products/search?query=<term>&retailer=amazon|walmart` (returns `product_id`, `price`, `ship_price`, `stars`, …) and `GET /products/{product_id}/offers?retailer=amazon|walmart` to compare offers by **price and condition** before ordering. These are metered too — $0.01 per call from the wallet, same as `/search`. On the MPP rail they are `POST /agent/products/search`, `POST /agent/products/offers`, and `POST /agent/products/details`, $0.01 per call."""
 
 RETAILER_DESCRIPTION = (
     "Buy products from {{DISPLAY}} ({{DOMAIN}}) and manage those orders via the Zinc "
