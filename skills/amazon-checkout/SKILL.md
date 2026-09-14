@@ -1,34 +1,28 @@
 ---
 name: amazon-checkout
-description: Buy products from Amazon (amazon.com) and manage those orders via the Zinc API (zinc.com). Use when the user wants to purchase, order, or check out an item from Amazon, check Amazon order status or tracking, cancel a Amazon order, or return a Amazon item. One API also covers Amazon, Walmart, Target, Best Buy and 50+ other US retailers. No account needed to start — an agent can mint its own sandbox key, then collect its own live key and a starter credit after one browser approval from its operator. Supports API key auth (ZINC_API_KEY) or Machine Payments Protocol (MPP) for per-request payments via a Stripe card, Tempo stablecoins, or x402 (USDC on Base).
+description: Buy, track, and return real products from Amazon (amazon.com) through the Zinc API (zinc.com). Use when the user wants to buy something from Amazon, check a Amazon order's status or tracking, cancel one, or return an item. The same API covers almost any other US retailer. Needs no account to begin — the agent mints its own test key, then earns a live key and a starter credit once its operator approves it. Pays by API key or per request over HTTP 402.
 ---
 
 # Amazon Checkout
 
 Buy, track, and return products from Amazon (amazon.com) through the Zinc API (`https://api.zinc.com`). US orders.
 
-> **Powered by Zinc Universal Checkout.** The same API buys from Amazon and 50+ other US retailers (Amazon, Walmart, Target, Best Buy, eBay, and more). To order across multiple retailers from one skill, install the [`universal-checkout`](https://github.com/zincio/skills/tree/master/skills/universal-checkout) skill (`npx skills add zincio/skills --skill universal-checkout`). Live retailer list: `GET https://api.zinc.com/retailers`.
+> **Powered by Zinc Universal Checkout.** The same API buys from Amazon and almost any other US retailer. To order across multiple retailers from one skill, install the [`universal-checkout`](https://github.com/zincio/skills/tree/master/skills/universal-checkout) skill (`npx skills add zincio/skills --skill universal-checkout`). Live retailer list: `GET https://api.zinc.com/retailers`.
 
-## Quick Start
+## Which key am I using?
 
-**`ZINC_API_KEY` is set** → send `Authorization: Bearer $ZINC_API_KEY` and skip to placing an order.
+- **Your operator already gave you one** (often `$ZINC_API_KEY`) → send `Authorization: Bearer <key>` and go straight to ordering.
+- **You have no key** → get your own below. No signup form, and a starter credit to spend once your operator approves you.
+- **Your operator never wants an account** → skip keys entirely and pay per request over MPP: `POST /agent/orders` to buy, `/agent/search` to discover, settled with a Stripe card, Tempo stablecoins, or x402. See [MPP Auth](#mpp-auth-machine-payments-protocol).
 
-**No key?** Get your own — no signup form, and a starter credit in the wallet once your operator approves you at step 4. Steps 1, 2 and 3 take a couple of minutes of API calls; step 4 takes however long your operator needs to click Allow. Do these in order and do not skip ahead.
+## Getting started
 
-1. **Mint a sandbox key.** `POST /sandbox/keys` — no auth, no body required. You get `api_key` (also echoed as `key`, same value) and a complete `example_order`. Send it as `Authorization: Bearer <api_key>` on everything below; `zn_test_` keys route to the sandbox automatically, with no extra header, and nothing they do costs money.
-2. **Place a test order.** `POST /orders` with `example_order` exactly as returned, then `GET /orders/{id}` every 2s. `status` becomes `order_placed` within a few seconds — **that is the successful terminal status, not a waypoint** — and `tracking_numbers[0].status` then walks to `delivered`, all within about fifteen seconds of creation. Nothing has to be running on your side. Give up only after 60s.
-3. **Ask your operator to approve you.** `POST /device/code` with the sandbox key as Bearer and an optional `{"name": "<what you are>"}` — the name is what your operator sees. Show them `verification_uri_complete` (or `human_message` verbatim), then **stop and wait**. This is the human step: do not open a browser yourself, do not mint a second key, and do not start a second code.
-4. **Collect your live key.** `POST /device/token` with `{"device_code": "…"}` and **no `Authorization` header** — the device code is the credential. Poll every `interval` seconds and handle exactly four answers:
-   - **400 `authorization_pending`** — nobody has clicked yet. Normal. Keep polling.
-   - **400 `slow_down`** — you are polling too fast. Wait longer, then continue.
-   - **400 `expired_token`** — the code died (they are good for `expires_in` seconds, 15 minutes today) or the key was already collected. **Stop polling.** Go back to step 3 for a new code only if your operator asks you to.
-   - **403 `access_denied`** — they said no. **Stop, and do not start another code.**
-   On success you get `api_key` (`zn_live_…`) **exactly once** — store it before doing anything else. The same response carries `starter_credit` (`max_price_cents` is the most a single order can carry, with the per-order fee already deducted) and `sandbox` (your test orders and key, now moved onto their account).
-5. **Buy something real from Amazon.** Ask your operator for a shipping address — **`phone_number` is required** — and never reuse the sandbox address. Then `POST /orders` with a amazon.com product URL and `max_price` at or under `starter_credit.max_price_cents`. Confirm the item and the price with your operator before placing a live order.
+Four steps, in order. Details for each are in [references/getting-started.md](https://github.com/zincio/skills/blob/master/skills/amazon-checkout/references/getting-started.md) — read that when a step does not behave as described.
 
-**Pay per request instead, with no account at all** → MPP: `POST /agent/orders` to buy and `/agent/search` to discover ($0.01 per data call), paid with a **Stripe card** (via Stripe Link — no crypto), **Tempo** stablecoins, or **x402** (USDC on Base). `GET /retailers` is free.
-
-**Short on funds?** A `402 insufficient_funds` carries `details.fund_with` with every way to pay. `GET /wallet/me` shows the balance any time.
+1. **Get a test key.** `POST https://api.zinc.com/sandbox/keys` — no auth, no signup. Returns `api_key` (`zn_test_…`) and a ready-made `example_order`. Send it as `Authorization: Bearer <api_key>` from here on.
+2. **Place a test order.** `POST /orders` with that `example_order`, then poll `GET /orders/{id}`. Costs nothing. `status` reaches **`order_placed`** — that is success, and it never becomes `delivered`; shipping shows up separately under `tracking_numbers[0].status`, which reaches `delivered` about fifteen seconds in.
+3. **Earn your live key.** `POST /device/code`, show your operator the link it returns, and wait while polling `POST /device/token`. When they approve, you receive a `zn_live_` key **once** — plus a starter credit in their wallet, and your sandbox history moved onto their account.
+4. **Buy something real.** `POST /orders` with a amazon.com product URL and `max_price` at or under `starter_credit.max_price_cents`. Ask your operator for the shipping address (**`phone_number` is required**) and confirm the item and price with them first.
 
 All amounts are in **US cents** (e.g. `5000` = $50.00).
 

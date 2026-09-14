@@ -21,7 +21,8 @@ Usage:
 `--refresh` writes tools/retailers.json (committed) so builds are reproducible
 and catalog changes show up as a reviewable diff.
 
-Each skill is a self-contained folder (SKILL.md + references/errors.md),
+Each skill is a self-contained folder (SKILL.md + references/errors.md +
+references/getting-started.md),
 installable via `npx skills add zincio/skills --skill <name>`.
 Scope: US retailers, full lifecycle (discover -> buy -> track -> return).
 """
@@ -35,6 +36,7 @@ import urllib.request
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKILLS_DIR = os.path.join(REPO_ROOT, "skills")
 SHARED_ERRORS = os.path.join(REPO_ROOT, "references", "errors.md")
+SHARED_GETTING_STARTED = os.path.join(REPO_ROOT, "references", "getting-started.md")
 SNAPSHOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "retailers.json")
 RETAILERS_URL = "https://api.zinc.com/retailers"
 
@@ -131,26 +133,20 @@ BODY = """
 
 {{POWERED_NOTE}}
 
-## Quick Start
+## Which key am I using?
 
-**`ZINC_API_KEY` is set** → send `Authorization: Bearer $ZINC_API_KEY` and skip to placing an order.
+- **Your operator already gave you one** (often `$ZINC_API_KEY`) → send `Authorization: Bearer <key>` and go straight to ordering.
+- **You have no key** → get your own below. No signup form, and a starter credit to spend once your operator approves you.
+- **Your operator never wants an account** → skip keys entirely and pay per request over MPP: `POST /agent/orders` to buy, `/agent/search` to discover, settled with a Stripe card, Tempo stablecoins, or x402. See [MPP Auth](#mpp-auth-machine-payments-protocol).
 
-**No key?** Get your own — no signup form, and a starter credit in the wallet once your operator approves you at step 4. Steps 1, 2 and 3 take a couple of minutes of API calls; step 4 takes however long your operator needs to click Allow. Do these in order and do not skip ahead.
+## Getting started
 
-1. **Mint a sandbox key.** `POST /sandbox/keys` — no auth, no body required. You get `api_key` (also echoed as `key`, same value) and a complete `example_order`. Send it as `Authorization: Bearer <api_key>` on everything below; `zn_test_` keys route to the sandbox automatically, with no extra header, and nothing they do costs money.
-2. **Place a test order.** `POST /orders` with `example_order` exactly as returned, then `GET /orders/{id}` every 2s. `status` becomes `order_placed` within a few seconds — **that is the successful terminal status, not a waypoint** — and `tracking_numbers[0].status` then walks to `delivered`, all within about fifteen seconds of creation. Nothing has to be running on your side. Give up only after 60s.
-3. **Ask your operator to approve you.** `POST /device/code` with the sandbox key as Bearer and an optional `{"name": "<what you are>"}` — the name is what your operator sees. Show them `verification_uri_complete` (or `human_message` verbatim), then **stop and wait**. This is the human step: do not open a browser yourself, do not mint a second key, and do not start a second code.
-4. **Collect your live key.** `POST /device/token` with `{"device_code": "…"}` and **no `Authorization` header** — the device code is the credential. Poll every `interval` seconds and handle exactly four answers:
-   - **400 `authorization_pending`** — nobody has clicked yet. Normal. Keep polling.
-   - **400 `slow_down`** — you are polling too fast. Wait longer, then continue.
-   - **400 `expired_token`** — the code died (they are good for `expires_in` seconds, 15 minutes today) or the key was already collected. **Stop polling.** Go back to step 3 for a new code only if your operator asks you to.
-   - **403 `access_denied`** — they said no. **Stop, and do not start another code.**
-   On success you get `api_key` (`zn_live_…`) **exactly once** — store it before doing anything else. The same response carries `starter_credit` (`max_price_cents` is the most a single order can carry, with the per-order fee already deducted) and `sandbox` (your test orders and key, now moved onto their account).
-5. {{FIRST_BUY}}
+Four steps, in order. Details for each are in [references/getting-started.md]({{GETTING_STARTED_LINK}}) — read that when a step does not behave as described.
 
-**Pay per request instead, with no account at all** → MPP: `POST /agent/orders` to buy and `/agent/search` to discover ($0.01 per data call), paid with a **Stripe card** (via Stripe Link — no crypto), **Tempo** stablecoins, or **x402** (USDC on Base). `GET /retailers` is free.
-
-**Short on funds?** A `402 insufficient_funds` carries `details.fund_with` with every way to pay. `GET /wallet/me` shows the balance any time.
+1. **Get a test key.** `POST https://api.zinc.com/sandbox/keys` — no auth, no signup. Returns `api_key` (`zn_test_…`) and a ready-made `example_order`. Send it as `Authorization: Bearer <api_key>` from here on.
+2. **Place a test order.** `POST /orders` with that `example_order`, then poll `GET /orders/{id}`. Costs nothing. `status` reaches **`order_placed`** — that is success, and it never becomes `delivered`; shipping shows up separately under `tracking_numbers[0].status`, which reaches `delivered` about fifteen seconds in.
+3. **Earn your live key.** `POST /device/code`, show your operator the link it returns, and wait while polling `POST /device/token`. When they approve, you receive a `zn_live_` key **once** — plus a starter credit in their wallet, and your sandbox history moved onto their account.
+4. **Buy something real.** {{FIRST_BUY}}
 
 All amounts are in **US cents** (e.g. `5000` = $50.00).
 
@@ -376,50 +372,38 @@ UNIVERSAL_PRODUCT_SEARCH = """
 **Richer product data (Amazon & Walmart only).** For best-price comparison on those two, use `GET /products/search?query=<term>&retailer=amazon|walmart` (returns `product_id`, `price`, `ship_price`, `stars`, …) and `GET /products/{product_id}/offers?retailer=amazon|walmart` to compare offers by **price and condition** before ordering. On the MPP rail these are `POST /agent/products/search`, `POST /agent/products/offers`, and `POST /agent/products/details`, $0.01 per call."""
 
 RETAILER_DESCRIPTION = (
-    "Buy products from {{DISPLAY}} ({{DOMAIN}}) and manage those orders via the Zinc "
-    "API (zinc.com). Use when the user wants to purchase, order, or check out an item "
-    "from {{DISPLAY}}, check {{DISPLAY}} order status or tracking, cancel a {{DISPLAY}} "
-    "order, or return a {{DISPLAY}} item. One API also covers Amazon, Walmart, Target, "
-    "Best Buy and 50+ other US retailers. No account needed to start — an agent can mint "
-    "its own sandbox key, then collect its own live key and a starter credit after one "
-    "browser approval from its operator. Supports API key auth (ZINC_API_KEY) or "
-    "Machine Payments Protocol (MPP) for per-request payments via a Stripe card, Tempo "
-    "stablecoins, or x402 (USDC on Base)."
+    "Buy, track, and return real products from {{DISPLAY}} ({{DOMAIN}}) through the Zinc "
+    "API (zinc.com). Use when the user wants to buy something from {{DISPLAY}}, check a "
+    "{{DISPLAY}} order's status or tracking, cancel one, or return an item. The same API "
+    "covers almost any other US retailer. Needs no account to begin — the agent mints its "
+    "own test key, then earns a live key and a starter credit once its operator approves "
+    "it. Pays by API key or per request over HTTP 402."
 )
 
 UNIVERSAL_DESCRIPTION = (
-    "Discover, buy, track, and return products across Amazon, Walmart, Target, Best Buy, "
-    "eBay, and 50+ other US retailers via the Zinc API (zinc.com). Use when the user wants "
-    "to search for or buy a product, check out, check order status or tracking, cancel an "
-    "order, or return an item programmatically. No account needed to start — an agent can "
-    "mint its own sandbox key, then collect its own live key and a starter credit after "
-    "one browser approval from its operator. Supports API key auth (ZINC_API_KEY) or "
-    "Machine Payments Protocol (MPP) for per-request payments via a Stripe card (Stripe "
-    "Link), Tempo stablecoins, or x402 (USDC on Base)."
+    "Buy, track, and return real products from Amazon, Walmart, Target and almost any "
+    "other US online retailer through the Zinc API (zinc.com). Use when the user wants to "
+    "find or buy a product, check an order's status or tracking, cancel an order, or "
+    "return an item. Needs no account to begin — the agent mints its own test key, then "
+    "earns a live key and a starter credit once its operator approves it. Pays by API key "
+    "or per request over HTTP 402."
 )
 
 UNIVERSAL_FIRST_BUY = (
-    "**Buy something real.** Ask your operator for a shipping address — "
-    "**`phone_number` is required** — and never reuse the sandbox address. Then "
-    "`GET /search?q=…&max_price=<starter_credit.max_price_cents>` with your live key, "
-    "take a result's `url` as `products[0].url`, and `POST /orders` with `max_price` at "
-    "or under that same number. Search ranks across retailers but does not promise every "
-    "hit is orderable — if one comes back `url_unreachable`, take the next result rather "
-    "than retrying it. Confirm the item and the price with your operator before placing a "
-    "live order."
+    "`GET /search?q=…&max_price=<starter_credit.max_price_cents>`, then `POST /orders` "
+    "with a result's `url`. Ask your operator for the shipping address (**`phone_number` "
+    "is required**) and confirm the item and price with them first."
 )
 
 RETAILER_FIRST_BUY = (
-    "**Buy something real from {{DISPLAY}}.** Ask your operator for a shipping address — "
-    "**`phone_number` is required** — and never reuse the sandbox address. Then "
     "`POST /orders` with a {{DOMAIN}} product URL and `max_price` at or under "
-    "`starter_credit.max_price_cents`. Confirm the item and the price with your operator "
-    "before placing a live order."
+    "`starter_credit.max_price_cents`. Ask your operator for the shipping address "
+    "(**`phone_number` is required**) and confirm the item and price with them first."
 )
 
 RETAILER_POWERED_NOTE = (
-    "> **Powered by Zinc Universal Checkout.** The same API buys from {{DISPLAY}} and 50+ "
-    "other US retailers (Amazon, Walmart, Target, Best Buy, eBay, and more). To order "
+    "> **Powered by Zinc Universal Checkout.** The same API buys from {{DISPLAY}} and "
+    "almost any other US retailer. To order "
     "across multiple retailers from one skill, install the "
     "[`universal-checkout`](https://github.com/zincio/skills/tree/master/skills/universal-checkout) "
     "skill (`npx skills add zincio/skills --skill universal-checkout`). Live retailer list: "
@@ -427,9 +411,11 @@ RETAILER_POWERED_NOTE = (
 )
 
 UNIVERSAL_POWERED_NOTE = (
-    "> Live supported-retailer list: `GET https://api.zinc.com/retailers` (free, no auth). "
-    "If an agent only ever buys from one store, there are also per-retailer skills "
-    "(`amazon-checkout`, `walmart-checkout`, …) — see the repo README."
+    "> **Pass a product URL from almost any US retailer.** An uncatalogued domain is "
+    "first class on the order path — in a recent 60-day window customers ordered from "
+    "296 distinct domains. `GET https://api.zinc.com/retailers` (free, no auth) lists "
+    "the storefronts with published guarantees — free-shipping terms, whether an account "
+    "is needed, where they ship — so check it when those details matter."
 )
 
 RETAILER_FIND_INTRO = (
@@ -496,14 +482,17 @@ def variant_tokens(r):
             "DESCRIPTION": UNIVERSAL_DESCRIPTION,
             "TITLE": "Universal Checkout",
             "INTRO": (
-                "Discover, buy, track, and return products across US online retailers "
-                "through the Zinc API (`https://api.zinc.com`). One API covers Amazon, "
-                "Walmart, Target, Best Buy, eBay, Home Depot, Lowe's, Wayfair, and 50+ more."
+                "One API to buy, track and return products from US online retailers. "
+                "Base URL `https://api.zinc.com`."
             ),
             "POWERED_NOTE": UNIVERSAL_POWERED_NOTE,
             "FIND_INTRO": UNIVERSAL_FIND_INTRO,
             "FIND_FILTER": UNIVERSAL_FIND_FILTER,
             "URL_DESC": "Direct product page URL on a supported retailer",
+            "GETTING_STARTED_LINK": (
+                "https://github.com/zincio/skills/blob/master/skills/"
+                "universal-checkout/references/getting-started.md"
+            ),
             "PRODUCT_SEARCH": UNIVERSAL_PRODUCT_SEARCH,
             "FIRST_BUY": UNIVERSAL_FIRST_BUY,
         }
@@ -519,6 +508,10 @@ def variant_tokens(r):
         "FIND_INTRO": RETAILER_FIND_INTRO,
         "FIND_FILTER": RETAILER_FIND_FILTER,
         "URL_DESC": "Direct {{DISPLAY}} product page URL (on {{DOMAIN}})",
+        "GETTING_STARTED_LINK": (
+            "https://github.com/zincio/skills/blob/master/skills/"
+            "{{SLUG}}-checkout/references/getting-started.md"
+        ),
         "PRODUCT_SEARCH": RETAILER_PRODUCT_SEARCH if r["psearch"] else "",
         "FIRST_BUY": RETAILER_FIRST_BUY,
     }
@@ -581,6 +574,9 @@ def write_skill(r):
     with open(os.path.join(folder, "SKILL.md"), "w") as f:
         f.write(render(r))
     shutil.copyfile(SHARED_ERRORS, os.path.join(refs, "errors.md"))
+    shutil.copyfile(
+        SHARED_GETTING_STARTED, os.path.join(refs, "getting-started.md")
+    )
     return folder_name
 
 
