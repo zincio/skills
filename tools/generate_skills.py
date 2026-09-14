@@ -137,7 +137,7 @@ Four steps, in order. Full walkthrough: [Agent Sandbox Quickstart](https://www.z
 
 1. **Get a test key.** `POST https://api.zinc.com/sandbox/keys` — no auth, no signup. Returns `api_key` (`zn_test_…`) and a ready-made `example_order`. Send it as `Authorization: Bearer <api_key>` from here on.
 2. **Place a test order.** `POST /orders` with that `example_order`, then poll `GET /orders/{id}`. Free. `status` reaches **`order_placed`** — that is success, and it never becomes `delivered`; shipping shows up under `tracking_numbers[0].status`.
-3. **Earn your live key.** `POST /device/code`, show your operator the link it returns, and poll `POST /device/token` (400 `authorization_pending` means keep waiting). On approval you get a `zn_live_` key **once**, plus a starter credit in their wallet.
+3. **Earn your live key.** `POST /device/code`, show your operator the link it returns, and poll `POST /device/token` (400 `authorization_pending` means keep waiting). On approval you get a `zn_live_` key **once**, plus a **$5 starter credit** in their wallet (`starter_credit.max_price_cents` is what one order can carry).
 4. **Buy something real.** {{FIRST_BUY}}
 
 Already have a key from your operator? Use it and skip to **Place an order**. Never want an account? Pay per request over [MPP](https://www.zinc.com/docs/v2/mpp.md): `POST /agent/orders`, no key needed.
@@ -194,21 +194,19 @@ UNIVERSAL_PRODUCT_SEARCH = """
 **Richer product data (Amazon & Walmart only).** For best-price comparison on those two, use `GET /products/search?query=<term>&retailer=amazon|walmart` (returns `product_id`, `price`, `ship_price`, `stars`, …) and `GET /products/{product_id}/offers?retailer=amazon|walmart` to compare offers by **price and condition** before ordering. On the MPP rail these are `POST /agent/products/search`, `POST /agent/products/offers`, and `POST /agent/products/details`, $0.01 per call."""
 
 RETAILER_DESCRIPTION = (
-    "Buy, track, and return real products from {{DISPLAY}} ({{DOMAIN}}) through the Zinc "
-    "API (zinc.com). Use when the user wants to buy something from {{DISPLAY}}, check a "
-    "{{DISPLAY}} order's status or tracking, cancel one, or return an item. The same API "
-    "covers almost any other US retailer. Needs no account to begin — the agent mints its "
-    "own test key, then earns a live key and a starter credit once its operator approves "
-    "it. Pays by API key or per request over HTTP 402."
+    "Discover, buy, track, and return real products from {{DISPLAY}} ({{DOMAIN}}) through "
+    "the Zinc API (zinc.com) — and from almost any other US retailer on the same API. "
+    "Needs no account to begin — the agent mints its own test key, then earns a live key "
+    "and a $5 starter credit once its operator approves it. Pay from a pre-funded wallet, "
+    "per request over MPP or x402, or with a Stripe Link card."
 )
 
 UNIVERSAL_DESCRIPTION = (
-    "Buy, track, and return real products from Amazon, Walmart, Target and almost any "
-    "other US online retailer through the Zinc API (zinc.com). Use when the user wants to "
-    "find or buy a product, check an order's status or tracking, cancel an order, or "
-    "return an item. Needs no account to begin — the agent mints its own test key, then "
-    "earns a live key and a starter credit once its operator approves it. Pays by API key "
-    "or per request over HTTP 402."
+    "Discover, buy, track, and return real products from Amazon, Walmart, Target and "
+    "almost any other US online retailer through the Zinc API (zinc.com). Needs no "
+    "account to begin — the agent mints its own test key, then earns a live key and a $5 "
+    "starter credit once its operator approves it. Pay from a pre-funded wallet, per "
+    "request over MPP or x402, or with a Stripe Link card."
 )
 
 UNIVERSAL_FIRST_BUY = (
@@ -233,11 +231,13 @@ RETAILER_POWERED_NOTE = (
 )
 
 UNIVERSAL_POWERED_NOTE = (
-    "> **Pass a product URL from almost any US retailer.** An uncatalogued domain is "
-    "first class on the order path — in a recent 60-day window customers ordered from "
-    "296 distinct domains. `GET https://api.zinc.com/retailers` (free, no auth) lists "
-    "the storefronts with published guarantees — free-shipping terms, whether an account "
-    "is needed, where they ship — so check it when those details matter."
+    "## Which retailers\n"
+    "\n"
+    "Pass a product URL from almost any US retailer — an uncatalogued domain is first "
+    "class on the order path, and in a recent 60-day window customers ordered from 296 "
+    "distinct domains. `GET /retailers` (free, no auth) lists the storefronts with "
+    "published guarantees: free-shipping terms, whether an account is needed, where they "
+    "ship. Check it when those details matter."
 )
 
 RETAILER_FIND_INTRO = (
@@ -304,7 +304,8 @@ def variant_tokens(r):
             "DESCRIPTION": UNIVERSAL_DESCRIPTION,
             "TITLE": "Universal Checkout",
             "INTRO": (
-                "One API to buy, track and return products from US online retailers. "
+                "One API to discover, buy, track and return products from US online "
+                "retailers. "
                 "Base URL `https://api.zinc.com`."
             ),
             "POWERED_NOTE": UNIVERSAL_POWERED_NOTE,

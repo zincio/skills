@@ -1,13 +1,15 @@
 ---
 name: universal-checkout
-description: Buy, track, and return real products from Amazon, Walmart, Target and almost any other US online retailer through the Zinc API (zinc.com). Use when the user wants to find or buy a product, check an order's status or tracking, cancel an order, or return an item. Needs no account to begin — the agent mints its own test key, then earns a live key and a starter credit once its operator approves it. Pays by API key or per request over HTTP 402.
+description: Discover, buy, track, and return real products from Amazon, Walmart, Target and almost any other US online retailer through the Zinc API (zinc.com). Needs no account to begin — the agent mints its own test key, then earns a live key and a $5 starter credit once its operator approves it. Pay from a pre-funded wallet, per request over MPP or x402, or with a Stripe Link card.
 ---
 
 # Universal Checkout
 
-One API to buy, track and return products from US online retailers. Base URL `https://api.zinc.com`.
+One API to discover, buy, track and return products from US online retailers. Base URL `https://api.zinc.com`.
 
-> **Pass a product URL from almost any US retailer.** An uncatalogued domain is first class on the order path — in a recent 60-day window customers ordered from 296 distinct domains. `GET https://api.zinc.com/retailers` (free, no auth) lists the storefronts with published guarantees — free-shipping terms, whether an account is needed, where they ship — so check it when those details matter.
+## Which retailers
+
+Pass a product URL from almost any US retailer — an uncatalogued domain is first class on the order path, and in a recent 60-day window customers ordered from 296 distinct domains. `GET /retailers` (free, no auth) lists the storefronts with published guarantees: free-shipping terms, whether an account is needed, where they ship. Check it when those details matter.
 
 ## Getting started
 
@@ -15,7 +17,7 @@ Four steps, in order. Full walkthrough: [Agent Sandbox Quickstart](https://www.z
 
 1. **Get a test key.** `POST https://api.zinc.com/sandbox/keys` — no auth, no signup. Returns `api_key` (`zn_test_…`) and a ready-made `example_order`. Send it as `Authorization: Bearer <api_key>` from here on.
 2. **Place a test order.** `POST /orders` with that `example_order`, then poll `GET /orders/{id}`. Free. `status` reaches **`order_placed`** — that is success, and it never becomes `delivered`; shipping shows up under `tracking_numbers[0].status`.
-3. **Earn your live key.** `POST /device/code`, show your operator the link it returns, and poll `POST /device/token` (400 `authorization_pending` means keep waiting). On approval you get a `zn_live_` key **once**, plus a starter credit in their wallet.
+3. **Earn your live key.** `POST /device/code`, show your operator the link it returns, and poll `POST /device/token` (400 `authorization_pending` means keep waiting). On approval you get a `zn_live_` key **once**, plus a **$5 starter credit** in their wallet (`starter_credit.max_price_cents` is what one order can carry).
 4. **Buy something real.** `GET /search?q=…&max_price=<starter_credit.max_price_cents>`, then `POST /orders` with a result's `url`. Ask your operator for the shipping address (**`phone_number` is required**) and confirm the item and price with them first.
 
 Already have a key from your operator? Use it and skip to **Place an order**. Never want an account? Pay per request over [MPP](https://www.zinc.com/docs/v2/mpp.md): `POST /agent/orders`, no key needed.
