@@ -1,6 +1,6 @@
 ---
 name: universal-checkout
-description: Discover, buy, track, and return products across Amazon, Walmart, Target, Best Buy, eBay, and 50+ other US retailers via the Zinc API (zinc.com). Use when the user wants to search for or buy a product, check out, check order status or tracking, cancel an order, or return an item programmatically. Supports API key auth (ZINC_API_KEY) or Machine Payments Protocol (MPP) for per-request payments via a Stripe card (Stripe Link), Tempo stablecoins, or x402 (USDC on Base).
+description: Discover, buy, track, and return products across Amazon, Walmart, Target, Best Buy, eBay, and 50+ other US retailers via the Zinc API (zinc.com). Use when the user wants to search for or buy a product, check out, check order status or tracking, cancel an order, or return an item programmatically. No account needed to start — an agent can mint its own sandbox key, then collect its own live key and a starter credit after one browser approval from its operator. Supports API key auth (ZINC_API_KEY) or Machine Payments Protocol (MPP) for per-request payments via a Stripe card (Stripe Link), Tempo stablecoins, or x402 (USDC on Base).
 ---
 
 # Universal Checkout
@@ -11,11 +11,19 @@ Discover, buy, track, and return products across US online retailers through the
 
 ## Quick Start
 
-**Which auth method should I use?**
+**`ZINC_API_KEY` is set** → send `Authorization: Bearer $ZINC_API_KEY` and skip to placing an order.
 
-- **`ZINC_API_KEY` env var is set** → Use `POST /orders` with Bearer token auth. This is the standard flow for pre-registered users.
-- **MPP — no account needed** → Use the `/agent/*` endpoints and pay per request with a **Stripe card** (via Stripe Link — no crypto), **Tempo** stablecoins, or **x402** (USDC on Base). `POST /agent/orders` to buy; `/agent/search` to discover ($0.01 per data call). `GET /retailers` is free.
-- **Neither is set** → Ask the user to either sign up at [app.zinc.com](https://app.zinc.com) for an API key, or set up an MPP payment method. Try it without code at [agent.zinc.com](https://agent.zinc.com).
+**No key?** Get your own in about two minutes — no signup form, and a starter credit in the wallet to spend. Do these in order and do not skip ahead.
+
+1. **Mint a sandbox key.** `POST /sandbox/keys` — no auth, no body required. You get `api_key` (`zn_test_…`) and a complete `example_order`. Send that key as `Authorization: Bearer <api_key>` on everything below; test keys route to the sandbox automatically, with no extra header.
+2. **Place a test order.** `POST /orders` with `example_order` exactly as returned, then `GET /orders/{id}` every 2s. `status` becomes `order_placed` within a few seconds — **that is the successful terminal status, not a waypoint** — and `tracking_numbers[0].status` walks to `delivered` about ten seconds after creation. Nothing has to be running on your side.
+3. **Ask your operator to approve you.** `POST /device/code` with the sandbox key as Bearer. Show them `verification_uri_complete` (or `human_message` verbatim), then **stop and wait**. This is the human step: do not open a browser yourself, do not mint a second key, and do not start a second code.
+4. **Collect your live key.** `POST /device/token` with `{"device_code": "…"}` every `interval` seconds. While you wait it returns **HTTP 400 with `authorization_pending`** — normal, keep polling. On approval it returns `api_key` (`zn_live_…`) **exactly once** — store it immediately, along with `starter_credit.max_price_cents`, the most a single order can carry.
+5. **Buy something real.** Ask your operator for a shipping address — **`phone_number` is required** — and never reuse the sandbox address. Then `GET /search?q=…&max_price=<starter_credit.max_price_cents>`, pick a result, and `POST /orders` with `max_price` at or under that number. Confirm the item and the price with your operator before placing a live order.
+
+**Pay per request instead, with no account at all** → MPP: `POST /agent/orders` to buy and `/agent/search` to discover ($0.01 per data call), paid with a **Stripe card** (via Stripe Link — no crypto), **Tempo** stablecoins, or **x402** (USDC on Base). `GET /retailers` is free.
+
+**Short on funds?** A `402 insufficient_funds` carries `details.fund_with` with every way to pay. `GET /wallet/me` shows the balance any time.
 
 All amounts are in **US cents** (e.g. `5000` = $50.00).
 
