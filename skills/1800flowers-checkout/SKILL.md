@@ -15,8 +15,10 @@ Four steps, in order. Full walkthrough: [Agent Sandbox Quickstart](https://www.z
 
 1. **Get a test key.** `POST https://api.zinc.com/sandbox/keys` — no auth, no signup. Returns `api_key` (`zn_test_…`) and a ready-made `example_order`. Send it as `Authorization: Bearer <api_key>` from here on.
 2. **Place a test order.** `POST /orders` with that `example_order`, then poll `GET /orders/{id}`. Free. `status` reaches **`order_placed`** — that is success, and it never becomes `delivered`; shipping shows up under `tracking_numbers[0].status`.
-3. **Earn your live key.** `POST /device/code`, show your operator the link it returns, and poll `POST /device/token` (400 `authorization_pending` means keep waiting). On approval you get a `zn_live_` key **once**, plus a **$5 starter credit** in their wallet (`starter_credit.max_price_cents` is what one order can carry).
+3. **Earn your live key.** `POST /device/code` with your test key as Bearer — that is what carries your sandbox history over. Show your operator the link it returns, then poll `POST /device/token` (no `Authorization` header; 400 `authorization_pending` means keep waiting). On approval you get a `zn_live_` key **once**, plus a **$5 starter credit** in their wallet.
 4. **Buy something real.** `POST /orders` with a 1800flowers.com product URL. **`max_price` is a ceiling, not a price** — you are charged the retailer's actual total, so set it a little above the listed price to leave room for tax and shipping. Ask your operator for the shipping address (**`phone_number` is required**) and confirm the item and price with them first.
+
+Watch the money: `GET /wallet/me` shows the `balance` and `order_fee_cents` (charged per order, on top of `max_price`). Each `/search` call costs 1¢ from the same wallet.
 
 Already have a key from your operator? Use it and skip to **Place an order**. Never want an account? Pay per request over [MPP](https://www.zinc.com/docs/v2/mpp.md): `POST /agent/orders`, no key needed.
 
