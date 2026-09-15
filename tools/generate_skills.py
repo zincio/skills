@@ -210,15 +210,19 @@ UNIVERSAL_DESCRIPTION = (
 )
 
 UNIVERSAL_FIRST_BUY = (
-    "`GET /search?q=…&max_price=<starter_credit.max_price_cents>`, then `POST /orders` "
-    "with a result's `url`. Ask your operator for the shipping address (**`phone_number` "
-    "is required**) and confirm the item and price with them first."
+    "Walmart is the best-covered retailer, so search there first: "
+    "`GET /search?q=<item> walmart`. **`max_price` is a ceiling, not a price** — you are "
+    "charged the retailer's actual total, so set it a little above the listed price to "
+    "leave room for tax and shipping. Ask your operator for the shipping address "
+    "(**`phone_number` is required**) and confirm the item and price with them first."
 )
 
 RETAILER_FIRST_BUY = (
-    "`POST /orders` with a {{DOMAIN}} product URL and `max_price` at or under "
-    "`starter_credit.max_price_cents`. Ask your operator for the shipping address "
-    "(**`phone_number` is required**) and confirm the item and price with them first."
+    "`POST /orders` with a {{DOMAIN}} product URL. **`max_price` is a ceiling, not a "
+    "price** — you are charged the retailer's actual total, so set it a little above the "
+    "listed price to leave room for tax and shipping. Ask your operator for the shipping "
+    "address (**`phone_number` is required**) and confirm the item and price with them "
+    "first."
 )
 
 RETAILER_POWERED_NOTE = (
