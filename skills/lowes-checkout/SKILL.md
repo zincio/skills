@@ -42,6 +42,7 @@ curl -X POST https://api.zinc.com/orders \
 
 - `max_price` is the ceiling **in cents** for the whole order. Zinc refuses rather than exceeding it.
 - `phone_number` is required. Never invent an address — ask your operator.
+- **To buy on your operator's own Lowe's account**, pass its `short_id` as `retailer_credentials_id` (`GET /managed-accounts` lists them). The payment method saved on that account pays the retailer, and the wallet is charged the per-order fee only. Omitting the field never means "pick one of mine" — it means the order runs on a Zinc account and the wallet pays for the item. ([retailer accounts](https://www.zinc.com/docs/v2/retailer-accounts.md))
 - Returns `201` with an order `id` and `status: pending`. Retailer, variants, quantities, gift options, idempotency: [Create Order](https://www.zinc.com/docs/v2/api-reference/orders/create-order.md).
 
 ## Track, cancel, return
@@ -52,7 +53,7 @@ curl -X POST https://api.zinc.com/orders \
 
 ## When something fails
 
-Errors are `{"error": {"code", "message", "details"}}`. Read `code`, not the message. `details` often names the fix — a `402 insufficient_funds` carries `fund_with`, every way to pay. Full list: [Error Handling](https://www.zinc.com/docs/v2/api-reference/introduction/error-handling.md) and [references/errors.md](https://github.com/zincio/skills/blob/master/skills/lowes-checkout/references/errors.md).
+Errors are `{"error": {"code", "message", "details"}}`. Read `code`, not the message. `details` often names the fix — a `402 insufficient_funds` carries `fund_with`, every way to pay, including your operator's own retailer account when they have one saved for that store. Full list: [Error Handling](https://www.zinc.com/docs/v2/api-reference/introduction/error-handling.md) and [references/errors.md](https://github.com/zincio/skills/blob/master/skills/lowes-checkout/references/errors.md).
 
 ## Rules
 

@@ -37,7 +37,7 @@ The error object is nested under `error` — read `body.error.code`, not `body.c
 - `unauthorized`, `forbidden`, `invalid_token`, `token_expired`
 
 ### Wallet & Payment
-- `insufficient_funds` — Low wallet balance (details include `required`/`available` in cents)
+- `insufficient_funds` — Wallet balance below what the order requires (details include `required`/`available` in cents, and `fund_with`: every way to pay). An order on a Zinc account needs `max_price` + the per-order fee; one placed on the operator's own retailer account (`retailer_credentials_id`) needs the fee only
 - `payment_failed`, `payment_method_required`, `invalid_payment_method`
 
 ### Order Request
