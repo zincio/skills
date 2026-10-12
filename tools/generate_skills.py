@@ -215,8 +215,8 @@ UNIVERSAL_DESCRIPTION = (
 UNIVERSAL_FIRST_BUY = (
     "Walmart orders usually ship free — reliably from about $10; below that shipping is "
     "often added, so a very cheap item can cost more delivered than it looks. Search with "
-    "`GET /search?q=<item> walmart` (the retailer name is a hint, not a filter — check "
-    "each result's `retailer`). **`max_price` is a ceiling, not a price**: you are charged "
+    "`GET /search?q=<item>&retailer=walmart` to get Walmart results only. **`max_price` "
+    "is a ceiling, not a price**: you are charged "
     "the retailer's actual total, so leave room for tax and shipping. Ask your operator "
     "for the shipping address (**`phone_number` is required**) and confirm the item and "
     "price with them first."
