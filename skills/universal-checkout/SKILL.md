@@ -22,7 +22,7 @@ Four steps, in order. Full walkthrough: [Agent Sandbox Quickstart](https://www.z
 
 Watch the money: `GET /wallet/me` shows the `balance` and `order_fee_cents` (charged per order, on top of `max_price`). Each `/search` call costs 1¢ from the same wallet.
 
-Already have a key from your operator? Use it and skip to **Place an order**. Never want an account? Pay per request over [MPP](https://www.zinc.com/docs/v2/mpp.md): `POST /agent/orders`, no key needed.
+Already have a key from your operator? Use it and skip to **Place an order**. Never want an account? Pay per order with Link, MPP, or x402 ([Agentic Purchases](https://www.zinc.com/docs/v2/agentic-purchases.md)): `POST /agent/orders`, no key needed.
 
 ## Place an order
 
